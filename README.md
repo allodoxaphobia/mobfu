@@ -1,4 +1,4 @@
 mobfu
 =====
 
-Attack tool/fuzeer for SMS services
+Attack tool/fuzzer for SMS services
