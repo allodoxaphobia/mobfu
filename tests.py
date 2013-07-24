@@ -4,7 +4,6 @@ import serial
 import time
 import random
 import optparse
-from PDU import PDU
 
 #global constants
 PROGNAME="mobfu.py"
@@ -37,6 +36,7 @@ def cleanError(err):
 	return parts[len(parts)-1].strip()
 
 def getCommandResponse(_cmd, _addLineFeed=True):
+	print _cmd
 	response = ''
 	char =''
 	if DEVICE.isOpen():
@@ -81,6 +81,18 @@ def initSerial(_devname,_pin):
 def delMSG():
 	while not "ERROR" in getCommandResponse(DEVICE,"AT+CMGD=1"):
 		print "DeletedMessage"
+
+def sendRAWPDU(pdu,_len):
+	getCommandResponse("AT+CMGF=0") # udp message mode
+	result = getCommandResponse("AT+CMGS="+_len)
+	if not "ERROR" in result:
+		result = getCommandResponse(pdu + chr(26),False)
+		if not "ERROR" in result:
+			log("SMS_OK_RAW: " + pdu)
+		else:
+			log("SMS_FAILED_RAW: " + pdu)
+	else:
+		log("#ERROR: Couldn't send PDU for unknown reasons:" + result)
 
 def sendSMS(_recipient, _msg, _autonum=True): #autonum: prepend every SMS with a tracking number
 	global SMSCOUNT
@@ -181,11 +193,18 @@ if __name__ == "__main__":
 				data = line.strip()
 				sendSMS(TARGET,data,True)
 		else:
+			i = 0
+			while 1 < 1000:
+				i=i+1
+				rnd = str("%0.2X" % i)
+				print rnd
+				sendRAWPDU("0041000B912374132090F2000410050003" + rnd + "02013935343732372d343a2f","16")
 			while True:
 				cmd = raw_input("SMS:")
 				if cmd == "": break #end this madness
 				sms = cmd.split(" ",1)
-				sendSMS(sms[0],sms[1],False)
+				if len(sms)> 1:
+					sendRAWPDU(sms[1],sms[0])
 		#todo, switch to global error handler and make sure close is done nicely
 		if DEVICE.isOpen():DEVICE.close()
 	else:
