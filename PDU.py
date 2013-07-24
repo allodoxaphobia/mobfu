@@ -103,6 +103,11 @@ class pduSUBMIT(object): #object needed for property setters
 		result += self.parts["DATA"]
 		return result
 	
+	def pdulen(self):
+		#todo add header length + smsc length
+		tmp = len(self.parts["DATA"])
+		return tmp
+		
 	def _enc7bit(self,value):
 		result = ""
 		tmp = []
@@ -113,7 +118,6 @@ class pduSUBMIT(object): #object needed for property setters
 			if idx !=-1:
 				tmp.append('{0:07b}'.format(idx))#store 7bit variant
 		result = self._pack7in8bits(tmp)
-		print result
 		return result
 	
 	def _pack7in8bits(self,value):

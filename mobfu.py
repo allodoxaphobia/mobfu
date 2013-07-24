@@ -4,7 +4,7 @@ import serial
 import time
 import random
 import optparse
-from PDU import PDU
+from PDU import pduSUBMIT
 
 #global constants
 PROGNAME="mobfu.py"
@@ -96,10 +96,13 @@ def sendSMS(_recipient, _msg, _autonum=True): #autonum: prepend every SMS with a
 		log("# ERROR: SMS Length is too long, maximum 140 characters allowed")
 		#todo, automatic switch to multiparts
 	else:
-		getCommandResponse("AT+CMGF=1") # short message mode
-		result = getCommandResponse('AT+CMGS="'+_recipient + '"')
+		getCommandResponse("AT+CMGF=0") # PDU mode
+		pdu = pduSUBMIT(_recipient,_msg)
+		#result = getCommandResponse('AT+CMGS="'+_recipient + '"')
+		result = getCommandResponse('AT+CMGS='+str(pdu.pdulen()))
 		if not "ERROR" in result:
-			result = getCommandResponse(msg + chr(26),False) #end message with \x1a = CTRL-Z
+			#result = getCommandResponse(msg + chr(26),False) #end message with \x1a = CTRL-Z
+			result = getCommandResponse(pdu.printpdu() + chr(26),False) #end message with \x1a = CTRL-Z
 			if not "ERROR" in result:
 				log( "SEND_OK: " + _recipient + ": " + msg)
 			else:
