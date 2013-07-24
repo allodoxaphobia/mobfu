@@ -22,6 +22,7 @@ class pduSUBMIT(object): #object needed for property setters
 		self.parts["DATA_ENC"]	=self.data_encodings["7BIT"]
 		self.parts["VALIDITY"]	=None
 		self.parts["DATA_LEN"]	="00"			# Length of data field, calculated later
+		self.parts["DATA_HEADERS"]=None			# Length of data field, calculated later	
 		self.parts["DATA"]	= None			# teh message itself, posssibly with headers
 		#calculate needed vals
 		self.recipient =_recipient
@@ -78,11 +79,14 @@ class pduSUBMIT(object): #object needed for property setters
 	def data(self): return self._orignalMSG
 	@data.setter
 	def data(self,value):
-		self._originalMSG = value
-		if self.parts["DATA_ENC"]=="00":
-			self.parts["DATA"]=self._enc7bit(self._originalMSG)
-		#todo add UDHeader, and other encodings
-		self.parts["DATA_LEN"] = self._intToHex(len(self.parts["DATA"]))
+		if len(value)>140:
+			raise ValueError("Maximum length for message is 140 characters. Create Multipart SMS' if you need more.")
+		else:
+			self._originalMSG = value
+			if self.parts["DATA_ENC"]=="00":
+				self.parts["DATA"]=self._enc7bit(self._originalMSG)
+			#todo add UDHeader, and other encodings
+			self.parts["DATA_LEN"] = self._intToHex(len(self._originalMSG))
 	
 	def printpdu(self):
 		result = ""
@@ -104,10 +108,18 @@ class pduSUBMIT(object): #object needed for property setters
 		return result
 	
 	def pdulen(self):
-		#todo add header length + smsc length
-		tmp = len(self.parts["DATA"])
+		#Returns Length of SMSC + Length of data(includes header), this is needed for AT+CMGS command
+		tmp = int(self.parts["DATA_LEN"],16)+int(self.parts["SMSC_LEN"],16)
 		return tmp
-		
+	
+	def setHeaders(self,value):
+		if value != "" and value != None:
+			self.parts["DATA_HEADERS"] = value
+			self.parts["DATA_LEN"] = self.intToHex(len(self.parts["DATA_HEADERS"])+len(self.parts["DATA"]))
+		else:
+			self.parts["DATA_HEADERS"] = None
+			self.parts["DATA_LEN"] = self.intToHex(len(self.parts["DATA"]))
+	
 	def _enc7bit(self,value):
 		result = ""
 		tmp = []
