@@ -10,12 +10,12 @@ class pduSUBMIT(object): #object needed for property setters
 		#build barebone
 		#note that any field with value None will be excluded during pdu generation
 		self.parts= {}
-		self.parts["SMSC_LEN"] 	= "00" 			# SMSC Number Length
+		self.parts["SMSC_LEN"] 	= "00" 			# SMSC Number Length in octects, includes SMSC type
 		self.parts["SMSC_TYPE"]	=None			# SMSC Number Type 91 for International
 		self.parts["SMSC"]	=None			# SMSC Number
 		self.parts["PDU_TYPE"]	=self._setPDUType()		# pdu type
 		self.parts["SMS_ID"]	="00"			# unique id, set to 0 to let phone decide
-		self.parts["RECIP_LEN"]	=None			# Recipient number length
+		self.parts["RECIP_LEN"]	=None			# Recipient number length, contains actual numbers, not number of octets and doesn't include nr type
 		self.parts["RECIP_TYPE"]=None			# Recipient number Type
 		self.parts["RECIP_NR"]	=None			# Recipient number 
 		self.parts["PROTO"]	="00"			# Protocol
@@ -112,7 +112,11 @@ class pduSUBMIT(object): #object needed for property setters
 	
 	def pdulen(self):
 		#Returns Length of SMSC + Length of data(includes header), this is needed for AT+CMGS command
-		tmp = int(self.parts["DATA_LEN"],16)+int(self.parts["SMSC_LEN"],16)
+		tmp = int(self.parts["DATA_LEN"],16)
+		tmp = tmp + len(self.parts["RECIP_NR"])/2 
+		if self.parts["SMSC_LEN"] !="00":
+			tmp = tmp + int(self.parts["SMSC_LEN"],16)
+			print int(self.parts["SMSC_LEN"],16)
 		return tmp
 	
 	def setHeaders(self,value):

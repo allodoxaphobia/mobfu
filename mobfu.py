@@ -72,12 +72,12 @@ def initSerial(_devname,_pin,_retry=0):
 	if not 'READY' in isPinOk:
 		log("# Setting SIM PIN.")
 		isPinOk = getCommandResponse("AT+CPIN="+_pin)
-		time.sleep(1)
+		time.sleep(5) #give phone time to connect ot network
 		isPinOk = getCommandResponse("AT+CPIN?")
 		if not "READY" in isPinOk:
-			raise ValueError("Error setting PIN" + isPinOk)
-	log("# PIN STATUS	 = " + getCommandResponse("AT+CPIN?"))
-	log("#SMS Service # 	 = " + getCommandResponse("AT+CSCA?"))
+			raise ValueError("Error setting PIN, please check wether the PIN you supplied is correct. ")
+	log("# PIN STATUS	 = " + isPinOk)
+	log("# SMS Service # 	 = " + getCommandResponse("AT+CSCA?"))
 
 def delMSG():
 	while not "ERROR" in getCommandResponse(DEVICE,"AT+CMGD=1"):
