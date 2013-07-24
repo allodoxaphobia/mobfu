@@ -39,6 +39,7 @@ def cleanError(err):
 def getCommandResponse(_cmd, _addLineFeed=True):
 	response = ''
 	char =''
+	print _cmd
 	if DEVICE.isOpen():
 		DEVICE.write(_cmd + "\r\n")
 		lc=0
@@ -60,7 +61,7 @@ def getCommandResponse(_cmd, _addLineFeed=True):
 	return response.strip()
 
 
-def initSerial(_devname,_pin):
+def initSerial(_devname,_pin,_retry=0):
 	global DEVICE
 	DEVICE = serial.Serial(_devname,baudrate=115200,parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE)
 	if not DEVICE.isOpen(): DEVICE.open()
@@ -71,10 +72,10 @@ def initSerial(_devname,_pin):
 	if not 'READY' in isPinOk:
 		log("# Setting SIM PIN.")
 		isPinOk = getCommandResponse("AT+CPIN="+_pin)
-		#todo, recheck wether this actually set pin state to ok	
-	if SMSSERVER != "":
-		if "ERROR" in getCommandResponse('AT+CSCA="'+SMSSERVER+'"'):
-			log("ERROR: Failed to set Message Service Center")
+		time.sleep(1)
+		isPinOk = getCommandResponse("AT+CPIN?")
+		if not "READY" in isPinOk:
+			raise ValueError("Error setting PIN" + isPinOk)
 	log("# PIN STATUS	 = " + getCommandResponse("AT+CPIN?"))
 	log("#SMS Service # 	 = " + getCommandResponse("AT+CSCA?"))
 
@@ -97,7 +98,7 @@ def sendSMS(_recipient, _msg, _autonum=True): #autonum: prepend every SMS with a
 		#todo, automatic switch to multiparts
 	else:
 		getCommandResponse("AT+CMGF=0") # PDU mode
-		pdu = pduSUBMIT(_recipient,_msg)
+		pdu = pduSUBMIT(_recipient,_msg, SMSSERVER)
 		#result = getCommandResponse('AT+CMGS="'+_recipient + '"')
 		result = getCommandResponse('AT+CMGS='+str(pdu.pdulen()))
 		if not "ERROR" in result:
@@ -111,21 +112,6 @@ def sendSMS(_recipient, _msg, _autonum=True): #autonum: prepend every SMS with a
 			log("# ERROR: unable to set resipient "+ _recipient + ": " + result)
 			exit(-1)
 	#print result
-
-def setValdNr(nr):
-	tmp = nr
-	if len(tmp)< 4:
-		log("# ERROR: Invalid phone number:" + nr)
-		exit(-1)
-	else:
-		if tmp[0:1] == "0":
-			tmp = "+"+COUNTRYCODE+ tmp[1:]
-		elif tmp[0:2]==COUNTRYCODE and len(tmp)>4:
-			tmp = "+" + tmp
-		elif tmp[0:1] !="+":
-			log("# ERROR: Invalid phone number: " + nr + " only international (+XX) , numbers starting with 0 and 4 digit numbers are allowed.")
-			exit(-1)
-	return tmp
 
 def setoptions():
 	global DEVICENAME
@@ -153,7 +139,7 @@ def setoptions():
 		DEVICENAME = opts.DEVICE
 		PIN = opts.PIN
 		if opts.SMSSERVER != "":
-			SMSSERVER = setValdNr(opts.SMSSERVER)
+			SMSSERVER = opts.SMSSERVER
 	if opts.FILE is not None and opts.TARGET is None:
 		log("# ERROR: When a file is specified, you also need to specify a target.")
 		exit(-1)
@@ -167,7 +153,7 @@ def setoptions():
 			log("# sERROR: the specified file " + opts.FILE + " does not exist.")
 			exit(-1)
 		if opts.TARGET is not None:
-			TARGET = setValdNr(opts.TARGET)
+			TARGET = opts.TARGET
 			log("# Target		 = " + TARGET)
 	if SMSCOUNT == 0 :
 		SMSID = str(random.randint(100000,999999))

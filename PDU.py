@@ -57,13 +57,16 @@ class pduSUBMIT(object): #object needed for property setters
 			self.parts["SMSC_TYPE"]	=None		
 			self.parts["SMSC"]	=None
 		else:
-			if value[:1]=="+":
-				self.parts["SMSC_TYPE"]	="91"
-				tmp = tmp[1:]
+			if self._validateNumber(value)==False:
+				raise ValueError("Invalid SMSC number specified: " + value)
 			else:
-				self.parts["SMSC_TYPE"]	="92"
-			self.parts["SMSC"]=self._calcNumber(tmp)
-			self.parts["SMSC_LEN"] 	= self._intToHex(len(self.parts["SMSC"])/2+1)
+				if value[:1]=="+":
+					self.parts["SMSC_TYPE"]	="91"
+					tmp = tmp[1:]
+				else:
+					self.parts["SMSC_TYPE"]	="92"
+				self.parts["SMSC"]=self._calcNumber(tmp)
+				self.parts["SMSC_LEN"] 	= self._intToHex(len(self.parts["SMSC"])/2+1)
 	
 	@property
 	def encoding(self):return self.parts["DATA_ENC"]
@@ -165,4 +168,11 @@ class pduSUBMIT(object): #object needed for property setters
 			result += tmp[1] + tmp[0] 	# flip the pair
 			tmp = tmp[2:]			# on with the next
 		return result
-			
+	
+	def _validateNumber(self,value):
+		if len(value)<4:
+			return False
+		elif len(value)>4:
+			if value[:1]!="+" and value[:1]!="0":
+				return False
+		return True
